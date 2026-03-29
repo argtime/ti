@@ -29,7 +29,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: auto;
   }
 
   /* Scanline overlay */
@@ -423,6 +423,18 @@
 </main>
 
 <script>
+// ── Cookie helpers ──────────────────────────────────────────────────────
+function setCookie(name, value, days = 365) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  const secure = location.protocol === 'https:' ? ';Secure' : '';
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Strict${secure}`;
+}
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 // ── State ──────────────────────────────────────────────────────────────
 let port = null, reader = null, writer = null;
 let rxCount = 0, txCount = 0, errCount = 0;
@@ -627,6 +639,18 @@ $('btn-disconnect').addEventListener('click', async () => {
 $('btn-clear').addEventListener('click', () => { $('log').innerHTML = ''; });
 
 // ── Init ────────────────────────────────────────────────────────────────
+// Restore saved settings from cookies
+const savedSettings = { apikey: getCookie('apikey'), model: getCookie('model'), baud: getCookie('baud'), chunk: getCookie('chunk') };
+if (savedSettings.apikey) $('apikey').value = savedSettings.apikey;
+if (savedSettings.model)  $('model').value  = savedSettings.model;
+if (savedSettings.baud)   $('baud').value   = savedSettings.baud;
+if (savedSettings.chunk)  $('chunk').value  = savedSettings.chunk;
+
+// Persist settings to cookies on change
+['apikey', 'model', 'baud', 'chunk'].forEach(id => {
+  $(id).addEventListener('change', () => setCookie(id, $(id).value));
+});
+
 log('system', 'Ready. Select a serial port to begin.');
 if (!('serial' in navigator)) {
   log('error', 'WebSerial API not available. Please use Chrome or Edge (desktop).');
